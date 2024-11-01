@@ -94,4 +94,3 @@ print(f"The distance between the points is: {distance}")
 angle = calculate_angle(point1, point2, point3)
 print(f"The angle between the points is: {angle} degrees")
 
-
