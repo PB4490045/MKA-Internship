@@ -1,6 +1,8 @@
 # Importing the necessary libraries
 import os
 import json
+import numpy as np
+import pandas as pd
 
 # Function to create the paths
 def create_paths(input_folder, output_folder):
@@ -21,7 +23,7 @@ def create_folders(input_path, output_path):
             print(f"Folder already exists: {output_folder_path}")
 # =============================================================================
 
-# Function to get all folder names in the input folder
+# Function to create dataframe with coordinates from .json files of every patient
 def get_folder_names(input_path):
 
     coordinates_dict = {}
@@ -48,55 +50,29 @@ def get_folder_names(input_path):
                 except (KeyError, IndexError) as e:
                     print(f"Error in file {filename}: {e}")        
         coords_dict[f'{folder}'] = coordinates_dict
-    print(coords_dict)
+    df = pd.DataFrame(coords_dict)
+    print(df)
     return coordinates_dict
-
-
 
 # =============================================================================
 
 
 # Define the input and output folders
-input_folder = r'Z:\\TM Internships\Dept of CMF\Bram Roumen\Master Thesis - CMF\Thesis\Inference workflow\Predicted patients'
+# input_folder = r'Z:\\TM Internships\Dept of CMF\Bram Roumen\Master Thesis - CMF\Thesis\Inference workflow\Predicted patients'
+input_folder = r'C:\Users\pb_va\OneDrive\Documents\Technical Medicine\TM2 - Stage 1 - MKA chirurgie\Bram Roumen\Inference workflow\Predicted patients'
 output_folder = 'Output'
-input_json = r'Z:\\TM Internships\Dept of CMF\Bram Roumen\Master Thesis - CMF\Thesis\Inference workflow\Predicted patients\ma_006'
-
+# input_json = r'Z:\\TM Internships\Dept of CMF\Bram Roumen\Master Thesis - CMF\Thesis\Inference workflow\Predicted patients\ma_006'
+input_json = r'C:\Users\pb_va\OneDrive\Documents\Technical Medicine\TM2 - Stage 1 - MKA chirurgie\Bram Roumen\Inference workflow\Predicted patients\ma_006'
 # Main function
 input_path, output_path = create_paths(input_folder, output_folder)
 create_folders(input_path, output_path)
 
 
 coords_dict = {}
-
-# # Function for creating a dictionary of coordinates of landmarks for all patients in the same dictionary
-# def create_dict(input_json):
-
-#     # Dictionary to store coordinates with point names as keys
-#     coordinates_dict = {}
-
-#     # Loop through all files in the folder
-#     for filename in os.listdir(input_json):
-#         if filename.endswith('.json'):
-#             # Extract point name from the filename (assumes the name is before the first underscore or dot)
-#             point_name = filename.split('.')[0]
-            
-#             # Load JSON file
-#             file_path = os.path.join(input_json, filename)
-#             with open(file_path) as f:
-#                 data = json.load(f)
-            
-#             # Extract position coordinates
-#             try:
-#                 position = data["markups"][0]["controlPoints"][0]["position"]
-#                 coordinates_dict[point_name] = position
-#             except (KeyError, IndexError) as e:
-#                 print(f"Error in file {filename}: {e}")
-#     coords_dict['ma_006'] = coordinates_dict
-#     #print(coordinates_dict)
-#     print(coords_dict)
-#     return coordinates_dict
-
 get_folder_names(input_path)
+
+# Uiteindelijk de bedoeleing dat je hier een input maakt van de input folder en dat je als output de dataframe hebt om te gebruiken voor een andere .py file
+# Code kan dan aangeroepen worden voor ground truth en voor de predicted patients
 
 
 
