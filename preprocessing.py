@@ -3,12 +3,14 @@ import os
 import json
 import pandas as pd
 import numpy as np
+from scipy import linalg
 
 # Function to create the paths
-def create_paths(input_folder, output_folder):
-    input_path = os.path.abspath(input_folder)
+def create_paths(groundtruth_folder, predicted_folder, output_folder):
+    groundtruth_path = os.path.abspath(groundtruth_folder)
+    predicted_path = os.path.abspath(predicted_folder)
     output_path = os.path.abspath(output_folder)
-    return input_path, output_path
+    return groundtruth_path, predicted_path, output_path
 
 # =============================================================================
 
@@ -26,6 +28,36 @@ def create_folders(input_path, output_path):
 
 # =============================================================================
 
+def calculate_midpoint(df, patient, landmark1, landmark2):
+    """
+    Calculate the midpoint between two landmarks for a given patient.
+
+    Parameters:
+    - df: DataFrame containing patient landmark coordinates.
+    - patient: The identifier for the patient in the DataFrame.
+    - landmark1: The first landmark (point) as a string.
+    - landmark2: The second landmark (point) as a string.
+
+    Returns:
+    - A numpy array representing the midpoint coordinates.
+      Returns np.array([np.nan, np.nan, np.nan]) if any landmark is missing.
+    """
+    try:
+        p1 = np.array(df.loc[patient, landmark1])
+    except KeyError:
+        print(f"Landmark '{landmark1}' is missing for patient {patient} for calculating midpoint.")
+        return np.array([np.nan, np.nan, np.nan])
+    
+    try:
+        p2 = np.array(df.loc[patient, landmark2])
+    except KeyError:
+        print(f"Landmark '{landmark2}' is missing for patient {patient} for calculating midpoint.")
+        return np.array([np.nan, np.nan, np.nan])
+    
+    # Calculate the midpoint between p1 and p2
+    midpoint = (p1 + p2) / 2
+    return midpoint
+
 def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
     """
     Create a plane defined by three points in 3D space.
@@ -40,12 +72,27 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
     Returns:
     - A list containing the coefficients of the plane equation in the form 
       [A, B, C, D], representing the equation Ax + By + Cz + D = 0.
+      Returns [np.nan, np.nan, np.nan, np.nan] if any of the landmarks are missing.
     """
-    # Retrieve landmark coordinates for the patient
-    p1 = np.array(df.loc[patient, landmark1])  
-    p2 = np.array(df.loc[patient, landmark2])  
-    p3 = np.array(df.loc[patient, landmark3])
+    # Check each landmark individually
+    try:
+        p1 = np.array(df.loc[patient, landmark1])
+    except KeyError:
+        print(f"Landmark '{landmark1}' is missing for patient {patient} for 3 point plane calculation.")
+        return [np.nan, np.nan, np.nan, np.nan]
     
+    try:
+        p2 = np.array(df.loc[patient, landmark2])
+    except KeyError:
+        print(f"Landmark '{landmark2}' is missing for patient {patient} for 3 point plane calculation.")
+        return [np.nan, np.nan, np.nan, np.nan]
+    
+    try:
+        p3 = np.array(df.loc[patient, landmark3])
+    except KeyError:
+        print(f"Landmark '{landmark3}' is missing for patient {patient} for 3 point plance calculation.")
+        return [np.nan, np.nan, np.nan, np.nan]
+
     # Create vectors from p2 to p1 and p2 to p3
     v1 = p1 - p2
     v2 = p3 - p2
@@ -64,46 +111,87 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
 
 def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     """
-    Create a plane defined by two points and the midpoint of two other points in 3D space.
+    Create a plane defined by the midpoint of two landmarks and two other landmarks in 3D space.
 
     Parameters:
     - df: DataFrame containing patient landmark coordinates.
     - patient: The identifier for the patient in the DataFrame.
-    - landmark1: The first landmark (point) as a string.
-    - landmark2: The second landmark (point) as a string.
+    - landmark1: The first landmark (point) as a string used to calculate the midpoint.
+    - landmark2: The second landmark (point) as a string used to calculate the midpoint.
     - landmark3: The third landmark (point) as a string.
     - landmark4: The fourth landmark (point) as a string.
 
     Returns:
     - A list containing the coefficients of the plane equation in the form 
       [A, B, C, D], representing the equation Ax + By + Cz + D = 0.
+      Returns [np.nan, np.nan, np.nan, np.nan] if any landmarks are missing, 
+      or if the midpoint cannot be calculated.
     """
-    # Retrieve landmark coordinates for the patient
-    p1 = np.array(df.loc[patient, landmark1])  
-    p2 = np.array(df.loc[patient, landmark2])  
-    p3 = np.array(df.loc[patient, landmark3])  
-    p4 = np.array(df.loc[patient, landmark4])
+    # Calculate the midpoint using the separate function
+    midpoint = calculate_midpoint(df, patient, landmark1, landmark2)
     
-    # Calculate the midpoint between landmark 3 and landmark 4
-    midpoint = (p3 + p4) / 2
+    # If midpoint contains NaN, return [np.nan, np.nan, np.nan, np.nan]
+    if np.isnan(midpoint).any():
+        return [np.nan, np.nan, np.nan, np.nan]
+    
+    # Check each landmark individually    
+    try:
+        p3 = np.array(df.loc[patient, landmark3])
+    except KeyError:
+        print(f"Landmark '{landmark3}' is missing for patient {patient} for 4 point plance calculation.")
+        return [np.nan, np.nan, np.nan, np.nan]    
+    try:
+        p4 = np.array(df.loc[patient, landmark4])
+    except KeyError:
+        print(f"Landmark '{landmark3}' is missing for patient {patient} for 4 point plance calculation.")
+        return [np.nan, np.nan, np.nan, np.nan]   
 
-    # Create vectors from p2 to p1 and p2 to midpoint
-    v1 = p1 - p2
-    v2 = midpoint - p2
+    # Create vectors from p2 to p1 and p2 to p3
+    v1 = p3 - midpoint
+    v2 = p4 - midpoint
     
     # Compute the cross product to find the normal vector of the plane
     normal = np.cross(v1, v2)
     
     # Compute the coefficients of the plane equation
     a, b, c = normal
-    d = -np.dot(normal, p2)
+    d = -np.dot(normal, midpoint)
     
     # Return the coefficients as a list
     plane = [a, b, c, d]
 
     return plane
 
-def create_dataframe(input_path, output_path):
+def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='13', landmark4='43', 
+                   landmark5='23', landmark6='33', landmark7='16', landmark8='46', landmark9='26', landmark10='36'):
+    
+    # Retrieve the coordinates of the landmarks from the DataFrame
+    try:
+        points = np.array([
+            calculate_midpoint(df, patient, landmark1, landmark2),
+            calculate_midpoint(df, patient, landmark3, landmark4),
+            calculate_midpoint(df, patient, landmark5, landmark6),
+            calculate_midpoint(df, patient, landmark7, landmark8),
+            calculate_midpoint(df, patient, landmark9, landmark10)
+        ])
+    except KeyError as e:
+        print(f"Landmark '{e.args[0]}' is missing for patient {patient}.")
+        return [np.nan, np.nan, np.nan, np.nan]
+    
+    # Create the design matrix for the least squares solution
+    # The design matrix will be [x, y, z, 1] for each point
+    A = np.c_[points[:, 0], points[:, 1], points[:, 2], np.ones(points.shape[0])]
+    
+    # Perform the least squares solution
+    _, _, Vt = linalg.svd(A)
+    
+    # The last row of Vt is the solution for [A, B, C, D]
+    plane_coefficients = Vt[-1, :]
+    
+    # Return the coefficients as [A, B, C, D]
+    return plane_coefficients
+
+def create_dataframe(input_path, output_path, df_name):
     """
     Create a DataFrame with coordinates from .json files of every patient
     and calculate the mandibular plane coefficients.
@@ -111,9 +199,6 @@ def create_dataframe(input_path, output_path):
     Parameters:
     - input_path: Path to the directory containing patient folders with .json files.
     - output_path: Path where the resulting CSV file will be saved.
-    - landmark1: The first landmark (point) as a string.
-    - landmark2: The second landmark (point) as a string.
-    - landmark3: The third landmark (point) as a string.
 
     Returns:
     - The resulting DataFrame with a new column 'Mandibular plane' containing the plane coefficients.
@@ -153,31 +238,24 @@ def create_dataframe(input_path, output_path):
     df = pd.DataFrame(data).set_index('Patient')
 
     # Calculate the mandibular plane coefficients for each patient and add to the DataFrame
-
     # Initialize the columns for the plane coefficients
     df['Mandibular plane'] = None
-    df['Maxillary plane'] = None
     df['Occlusal plane'] = None
+    df['FHP'] = None
     df['Facial midplane'] = None
-    df['FHP'] = None 
-
+    # df['Maxillary plane'] = None 
 
     for patient in df.index:
-        try:
-            # Calculate the plane coefficients using the specified landmarks
-            df.at[patient, 'Mandibular plane'] = create_plane_3p(df, patient, 'Menton', 'r-Gonion', 'l-Gonion')
-#            df.at[patient, 'Maxillary plane'] = create_plane_3p(df, patient, 'Nasion', 'r-Pterygoid', 'l-Pterygoid')
-#            df.at[patient, 'Occlusal plane'] = create_plane_3p(df, patient, 'r-Molar', 'l-Molar', 'Incisor')
-            df.at[patient, 'Facial midplane'] = create_plane_3p(df, patient, 'Sella', 'Nasion', 'Menton')
-            df.at[patient, 'FHP'] = create_plane_4p(df, patient, 'Infraorbitale L', 'Infraorbitale R', 'Porion L', 'Porion R')
-        except KeyError as e:
-            print(f"Error: Landmark '{e.args[0]}' does not exist for patient '{patient}'.")
-        
+        # Calculate the plane coefficients using the specified landmarks
+        df.at[patient, 'Mandibular plane'] = create_plane_3p(df, patient, 'Menton', 'r-Gonion', 'l-Gonion')
+        df.at[patient, 'Occlusal plane'] = occlusal_plane(df, patient)
+        df.at[patient, 'FHP'] = create_plane_4p(df, patient, 'Porion L', 'Porion R', 'Infraorbitale L', 'Infraorbitale R')
+        df.at[patient, 'Facial midplane'] = create_plane_3p(df, patient, 'Sella', 'Nasion', 'Menton')
+        # df.at[patient, 'Maxillary plane'] = create_plane_3p(df, patient,')
 
     # Save the DataFrame as a CSV file
-    df.to_csv(os.path.join(output_path, 'patients_coordinates.csv'))
+    df.to_csv(os.path.join(output_path, f'{df_name}.csv'))
     return df
-
 
 # =============================================================================
 
