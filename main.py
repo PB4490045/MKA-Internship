@@ -25,8 +25,8 @@ df_groundtruth = pp.loadcsv(output_path, 'df_groundtruth.csv')
 df_predicted = pp.loadcsv(output_path, 'df_predicted.csv')
 
 # Perform Cephalometric Analysis
-ceph_gt = ca.cephalometric_analysis(output_path, 'df_groundtruth.csv', 'ma_006')
-ceph_p = ca.cephalometric_analysis(output_path, 'df_predicted.csv', 'ma_006')
+ceph_gt = ca.cephalometric_analysis(output_path, 'df_groundtruth.csv', 'ma_007')
+ceph_p = ca.cephalometric_analysis(output_path, 'df_predicted.csv', 'ma_007')
 print(ceph_gt)
 print(ceph_p)
 

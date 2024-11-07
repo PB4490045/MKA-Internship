@@ -4,7 +4,7 @@ import pandas as pd
 import preprocessing as pp
 import scipy
 
-def calculate_distance(df, patient, landmark1, landmark2):
+def calculate_distance(df, patient, landmark1, landmark2): 
     """
     Calculate the distance between two landmarks for a specific patient.
 
@@ -16,15 +16,26 @@ def calculate_distance(df, patient, landmark1, landmark2):
 
     Returns:
     - The Euclidean distance between the two landmarks as a float.
-      If a landmark does not exist, returns NaN.
+      If a landmark does not exist or has missing data, returns NaN.
     """
     try:
         # Retrieve the coordinates for both landmarks
-        point1 = df.loc[patient, landmark1]
-        point2 = df.loc[patient, landmark2]
-    except KeyError as e:
-        print(f"Error: Landmark '{e.args[0]}' does not exist for patient '{patient}'. Returning NaN.")
-        return np.nan  # Return NaN if a landmark doesn't exist
+        point1 = np.array(df.loc[patient, landmark1])
+        point2 = np.array(df.loc[patient, landmark2])
+
+        # Check if the landmarks exist (i.e., if they are not NaN)
+        if pd.isna(point1).any() or pd.isna(point2).any():
+            print(f"Error: One or both landmarks ('{landmark1}', '{landmark2}') for patient '{patient}' are missing data. Returning NaN.")
+            return np.nan
+
+        # Check if the landmarks are valid 3D coordinates
+        if point1.ndim != 1 or point2.ndim != 1 or point1.shape[0] != 3 or point2.shape[0] != 3:
+            print(f"Error: Landmark coordinates for '{landmark1}' or '{landmark2}' are not in the correct 3D format for patient '{patient}'. Returning NaN.")
+            return np.nan
+
+    except (KeyError, ValueError) as e:
+        print(f"Error: {str(e)} for patient '{patient}'. Returning NaN.")
+        return np.nan  # Return NaN if a landmark doesn't exist or coordinates are invalid
 
     # Calculate the Euclidean distance
     distance = np.sqrt((point1[0] - point2[0])**2 + 
@@ -121,7 +132,7 @@ def calculate_angle_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     
     return angle_degrees
 
-def angle_between_planes(plane1_coefficients, plane2_coefficients):
+def angle_between_planes(df, patient, plane1_coefficients, plane2_coefficients):
     """
     Calculate the angle between two planes given their coefficients.
 
@@ -133,8 +144,13 @@ def angle_between_planes(plane1_coefficients, plane2_coefficients):
     - The angle between the two planes in degrees.
     """
     # Extract the normal vectors from the plane coefficients
-    normal1 = np.array(plane1_coefficients[:3])  # [A, B, C] from the first plane
-    normal2 = np.array(plane2_coefficients[:3])  # [A, B, C] from the second plane
+    a, b, c, d = np.array(df.loc[patient, plane1_coefficients])  # [A, B, C] from the first plane
+    e, f, g, h = np.array(df.loc[patient, plane2_coefficients])  # [A, B, C] from the second plane
+    normal1 = [a, b, c]
+    normal2 = [e, f, g]
+    
+    print(normal1)
+    print(normal2)
 
     # Calculate the cosine of the angle between the normal vectors
     cos_angle = np.dot(normal1, normal2) / (np.linalg.norm(normal1) * np.linalg.norm(normal2))
@@ -221,11 +237,28 @@ def cephalometric_analysis(output_path, filename, patient):
 
     df_ceph = pd.DataFrame(index=[patient])
 
-    # Cephalometric analysis
-    df_ceph['cond_w'] = calculate_distance(df, patient, 'r-Condyle', 'l-Condyl')
-    df_ceph['cor_w']  = calculate_distance(df, patient, 'r-Coronoid', 'l-Coronoid')
-    df_ceph['zyg_w']  = calculate_distance(df, patient, 'Zygomatic Process R', 'Zygomatic Process L')
-    print(df_ceph)
+    # Cephalometric distances
+    df_ceph['Condylar width'] = calculate_distance(df, patient, 'r-Condyle', 'l-Condyl')
+    df_ceph['Coronoidal widht']  = calculate_distance(df, patient, 'r-Coronoid', 'l-Coronoid')
+    df_ceph['Zygomatic width']  = calculate_distance(df, patient, 'Zygomatic Process R', 'Zygomatic Process L')
+
+    df_ceph['Anterior facial height'] = calculate_distance(df, patient, 'Nasion', 'Menton')                     # Maybe with projection
+    df_ceph['Anterior upper facial height'] = calculate_distance(df, patient, 'Nasion', 'Sella')                # Maybe with projection
+    df_ceph['Anterior midfacial height'] = calculate_distance(df, patient, 'Nasion', 'Anterior Nasal Spine')    # Maybe with projection
+    df_ceph['Anterior lower facial height'] = calculate_distance(df, patient, 'Menton', 'Posterior Nasal Spine') # Maybe with projection
+
+    df_ceph['Posterior facial height'] = calculate_distance(df, patient, 'Sella', 'r-Gonion')                   # Maybe with projection
+
+
+    # Cephalometric angles
+    df_ceph['SNA'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'A-point')
+    df_ceph['SNB'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'B-point')
+    df_ceph['ANB'] = calculate_angle_3p(df, patient, 'A-point', 'Nasion', 'B-point')
+
+    # Cephalometric planes
+    # df_ceph['FMA'] = angle_between_planes(df, patient, 'FHP', 'Mandibular plane') # Doesnt work yet
+
+    return df_ceph
 
 
 
