@@ -195,10 +195,61 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     return np.array([a, b, c, d])
 
 
+# def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='13', landmark4='43', 
+#                    landmark5='23', landmark6='33', landmark7='16', landmark8='46', landmark9='26', landmark10='36'):
+#     """
+#     Calculate the occlusal plane defined by five pairs of landmarks, each pair averaged into a midpoint.
+
+#     Parameters:
+#     - df: DataFrame containing patient landmark coordinates.
+#     - patient: The identifier for the patient in the DataFrame.
+#     - landmark1, landmark2, ..., landmark10: Strings representing landmarks to calculate midpoints.
+
+#     Returns:
+#     - A list containing the coefficients of the plane equation [A, B, C, D].
+#       Returns [np.nan, np.nan, np.nan, np.nan] if any landmark is missing or if points are collinear.
+#     """
+#     # Retrieve the coordinates of the landmarks from the DataFrame
+#     try:
+#         points = np.array([
+#             calculate_midpoint(df, patient, landmark1, landmark2),
+#             calculate_midpoint(df, patient, landmark3, landmark4),
+#             calculate_midpoint(df, patient, landmark5, landmark6),
+#             calculate_midpoint(df, patient, landmark7, landmark8),
+#             calculate_midpoint(df, patient, landmark9, landmark10)
+#         ])
+#     except KeyError as e:
+#         print(f"Landmark '{e.args[0]}' is missing for patient {patient}.")
+#         return [np.nan, np.nan, np.nan, np.nan]
+    
+#     # Check if any midpoint contains NaN values
+#     if np.isnan(points).any():
+#         print(f"One or more landmarks contain NaN values for patient {patient}.")
+#         return [np.nan, np.nan, np.nan, np.nan]
+    
+#     # Create the design matrix for the least squares solution
+#     # The design matrix will be [x, y, z, 1] for each point
+#     A = np.c_[points[:, 0], points[:, 1], points[:, 2], np.ones(points.shape[0])]
+    
+#     # Check if the points are collinear by evaluating rank
+#     if np.linalg.matrix_rank(A) < 3:
+#         print(f"The points for patient {patient} are collinear and cannot define a unique plane.")
+#         return [np.nan, np.nan, np.nan, np.nan]
+    
+#     # Perform the least squares solution
+#     _, _, Vt = linalg.svd(A)
+    
+#     # The last row of Vt is the solution for [A, B, C, D]
+#     plane_coefficients = Vt[-1, :]
+    
+#     # Return the coefficients as [A, B, C, D]
+#     return plane_coefficients
+
 def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='13', landmark4='43', 
                    landmark5='23', landmark6='33', landmark7='16', landmark8='46', landmark9='26', landmark10='36'):
     """
-    Calculate the occlusal plane defined by five pairs of landmarks, each pair averaged into a midpoint.
+    Calculate the occlusal plane defined by up to five pairs of landmarks, each pair averaged into a midpoint.
+    If fewer than five pairs are available, at least three pairs are required to define the plane.
 
     Parameters:
     - df: DataFrame containing patient landmark coordinates.
@@ -207,28 +258,24 @@ def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='1
 
     Returns:
     - A list containing the coefficients of the plane equation [A, B, C, D].
-      Returns [np.nan, np.nan, np.nan, np.nan] if any landmark is missing or if points are collinear.
+      Returns [np.nan, np.nan, np.nan, np.nan] if fewer than three valid midpoints are available.
     """
     # Retrieve the coordinates of the landmarks from the DataFrame
-    try:
-        points = np.array([
-            calculate_midpoint(df, patient, landmark1, landmark2),
-            calculate_midpoint(df, patient, landmark3, landmark4),
-            calculate_midpoint(df, patient, landmark5, landmark6),
-            calculate_midpoint(df, patient, landmark7, landmark8),
-            calculate_midpoint(df, patient, landmark9, landmark10)
-        ])
-    except KeyError as e:
-        print(f"Landmark '{e.args[0]}' is missing for patient {patient}.")
-        return [np.nan, np.nan, np.nan, np.nan]
+    points = []
+    for lm1, lm2 in [(landmark1, landmark2), (landmark3, landmark4), (landmark5, landmark6), (landmark7, landmark8), (landmark9, landmark10)]:
+        midpoint = calculate_midpoint(df, patient, lm1, lm2)
+        # Only add valid midpoints (no NaN values) to the points list
+        if not np.isnan(midpoint).any():
+            points.append(midpoint)
     
-    # Check if any midpoint contains NaN values
-    if np.isnan(points).any():
-        print(f"One or more landmarks contain NaN values for patient {patient}.")
+    # Check if we have enough points to define a plane (at least 3)
+    if len(points) < 3:
+        print(f"Not enough valid midpoints to calculate the occlusal plane for patient {patient}.")
         return [np.nan, np.nan, np.nan, np.nan]
+
+    points = np.array(points)  # Convert list of valid points to a NumPy array
     
     # Create the design matrix for the least squares solution
-    # The design matrix will be [x, y, z, 1] for each point
     A = np.c_[points[:, 0], points[:, 1], points[:, 2], np.ones(points.shape[0])]
     
     # Check if the points are collinear by evaluating rank
@@ -243,20 +290,10 @@ def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='1
     plane_coefficients = Vt[-1, :]
     
     # Return the coefficients as [A, B, C, D]
-    return np.array(plane_coefficients)
+    return plane_coefficients
 
-def create_dataframe(input_path, output_path, df_name):
-    """
-    Create a DataFrame with coordinates from .json files of every patient
-    and calculate the mandibular plane coefficients.
+def create_dataframe(input_path):
 
-    Parameters:
-    - input_path: Path to the directory containing patient folders with .json files.
-    - output_path: Path where the resulting CSV file will be saved.
-
-    Returns:
-    - The resulting DataFrame with a new column 'Mandibular plane' containing the plane coefficients.
-    """
     # Initialize a list to collect each patient's data
     data = []
 
@@ -291,13 +328,53 @@ def create_dataframe(input_path, output_path, df_name):
     # Convert list of dictionaries to a DataFrame and set 'Patient' as index
     df = pd.DataFrame(data).set_index('Patient')
 
-    # Calculate the mandibular plane coefficients for each patient and add to the DataFrame
+    return df, folder_names
+
+def create_dataframe_from_folders(input_path, folder_names):
+    # Initialize a list to collect each patient's data
+    data = []
+
+    for folder in folder_names:
+        folder_path = os.path.join(input_path, folder)
+        row_data = {'Patient': folder}  # Dictionary to store data for each patient
+
+        # Check if the folder actually exists to avoid errors
+        if not os.path.isdir(folder_path):
+            print(f"Folder {folder} does not exist in the specified path.")
+            continue
+
+        # Loop through all files in the folder
+        for filename in os.listdir(folder_path):
+            if filename.endswith('.json'):
+                # Extract point name from the filename
+                point_name = filename.split('.')[0]
+
+                # Load JSON file
+                file_path = os.path.join(folder_path, filename)
+                with open(file_path) as f:
+                    data_json = json.load(f)
+
+                # Extract position coordinates
+                try:
+                    position = data_json["markups"][0]["controlPoints"][0]["position"]
+                    row_data[point_name] = position
+                except (KeyError, IndexError) as e:
+                    print(f"Error in file {filename}: {e}")
+
+        # Append row data to the list
+        data.append(row_data)
+
+    # Convert list of dictionaries to a DataFrame and set 'Patient' as index
+    df = pd.DataFrame(data).set_index('Patient')
+    return df
+
+def create_planes(df):
+
     # Initialize the columns for the plane coefficients
     df['Mandibular plane'] = None
     df['Occlusal plane'] = None
     df['FHP'] = None
     df['Facial midplane'] = None
-    # df['Maxillary plane'] = None 
 
     for patient in df.index:
         # Calculate the plane coefficients using the specified landmarks
@@ -305,13 +382,13 @@ def create_dataframe(input_path, output_path, df_name):
         df.at[patient, 'Occlusal plane'] = occlusal_plane(df, patient)
         df.at[patient, 'FHP'] = create_plane_4p(df, patient, 'Porion L', 'Porion R', 'Infraorbitale L', 'Infraorbitale R')
         df.at[patient, 'Facial midplane'] = create_plane_3p(df, patient, 'Sella', 'Nasion', 'Menton')
-        # df.at[patient, 'Maxillary plane'] = create_plane_3p(df, patient,')
 
-    # Save the DataFrame as a CSV file
-    df.to_csv(os.path.join(output_path, f'{df_name}.csv'))
     return df
 
 # =============================================================================
+
+def save_df(df, output_path, df_name):
+    df.to_csv(os.path.join(output_path, f'{df_name}.csv'))
 
 def loadcsv(output_path, file_name):
     df = pd.read_csv(os.path.join(output_path, file_name), index_col=0)

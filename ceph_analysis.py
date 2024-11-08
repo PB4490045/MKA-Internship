@@ -230,33 +230,38 @@ def point_to_plane_distance(df, patient, landmark, plane):
 
 # =============================================================================
 
-def cephalometric_analysis(output_path, filename, patient):
+def cephalometric_analysis(df):
 
-    # For now for quick working
-    df = pp.loadcsv(output_path, filename)
+    # Pre-allocate the DataFrame with NaN values    
+    df_ceph = pd.DataFrame(index=df.index.unique(), columns=[
+    'Condylar width', 'Coronoidal width', 'Zygomatic width', 
+    'Anterior facial height', 'Anterior upper facial height', 
+    'Anterior midfacial height', 'Anterior lower facial height', 
+    'Posterior facial height', 'SNA', 'SNB', 'ANB'
+    ])
 
-    df_ceph = pd.DataFrame(index=[patient])
+    # Loop through each patient based on the DataFrame index
+    for patient in df.index.unique():    
 
-    # Cephalometric distances
-    df_ceph['Condylar width'] = calculate_distance(df, patient, 'r-Condyle', 'l-Condyl')
-    df_ceph['Coronoidal widht']  = calculate_distance(df, patient, 'r-Coronoid', 'l-Coronoid')
-    df_ceph['Zygomatic width']  = calculate_distance(df, patient, 'Zygomatic Process R', 'Zygomatic Process L')
+        # Cephalometric distances
+        df_ceph.loc[patient, 'Condylar width'] = calculate_distance(df, patient, 'r-Condyle', 'l-Condyl')
+        df_ceph.loc[patient, 'Coronoidal width'] = calculate_distance(df, patient, 'r-Coronoid', 'l-Coronoid')
+        df_ceph.loc[patient, 'Zygomatic width'] = calculate_distance(df, patient, 'Zygomatic Process R', 'Zygomatic Process L')
 
-    df_ceph['Anterior facial height'] = calculate_distance(df, patient, 'Nasion', 'Menton')                     # Maybe with projection
-    df_ceph['Anterior upper facial height'] = calculate_distance(df, patient, 'Nasion', 'Sella')                # Maybe with projection
-    df_ceph['Anterior midfacial height'] = calculate_distance(df, patient, 'Nasion', 'Anterior Nasal Spine')    # Maybe with projection
-    df_ceph['Anterior lower facial height'] = calculate_distance(df, patient, 'Menton', 'Posterior Nasal Spine') # Maybe with projection
+        df_ceph.loc[patient, 'Anterior facial height'] = calculate_distance(df, patient, 'Nasion', 'Menton')                     # Maybe with projection
+        df_ceph.loc[patient, 'Anterior upper facial height'] = calculate_distance(df, patient, 'Nasion', 'Sella')                # Maybe with projection
+        df_ceph.loc[patient, 'Anterior midfacial height'] = calculate_distance(df, patient, 'Nasion', 'Anterior Nasal Spine')    # Maybe with projection
+        df_ceph.loc[patient, 'Anterior lower facial height'] = calculate_distance(df, patient, 'Menton', 'Posterior Nasal Spine') # Maybe with projection
 
-    df_ceph['Posterior facial height'] = calculate_distance(df, patient, 'Sella', 'r-Gonion')                   # Maybe with projection
+        df_ceph.loc[patient, 'Posterior facial height'] = calculate_distance(df, patient, 'Sella', 'r-Gonion')                   # Maybe with projection
 
+        # Cephalometric angles
+        df_ceph.loc[patient, 'SNA'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'A-point')
+        df_ceph.loc[patient, 'SNB'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'B-point')
+        df_ceph.loc[patient, 'ANB'] = calculate_angle_3p(df, patient, 'A-point', 'Nasion', 'B-point')
 
-    # Cephalometric angles
-    df_ceph['SNA'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'A-point')
-    df_ceph['SNB'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'B-point')
-    df_ceph['ANB'] = calculate_angle_3p(df, patient, 'A-point', 'Nasion', 'B-point')
-
-    # Cephalometric planes
-    # df_ceph['FMA'] = angle_between_planes(df, patient, 'FHP', 'Mandibular plane') # Doesnt work yet
+        # Cephalometric planes
+        # df_ceph.loc[patient, 'FMA'] = angle_between_planes(df, patient, 'FHP', 'Mandibular plane') # Doesnt work yet
 
     return df_ceph
 
