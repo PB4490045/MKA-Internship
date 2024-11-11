@@ -247,6 +247,12 @@ def cephalometric_analysis(df):
         df_ceph.loc[patient, 'Condylar width'] = calculate_distance(df, patient, 'r-Condyle', 'l-Condyl')
         df_ceph.loc[patient, 'Coronoidal width'] = calculate_distance(df, patient, 'r-Coronoid', 'l-Coronoid')
         df_ceph.loc[patient, 'Zygomatic width'] = calculate_distance(df, patient, 'Zygomatic Process R', 'Zygomatic Process L')
+        df_ceph.loc[patient, 'Left Ramus height'] = calculate_distance(df, patient, 'Porion L', 'l-Gonion')
+        df_ceph.loc[patient, 'Right Ramus height'] = calculate_distance(df, patient, 'Porion R', 'r-Gonion')
+        df_ceph.loc[patient, 'Ramus length diff'] = (df_ceph.loc[patient, 'Right Ramus height'] - df_ceph.loc[patient, 'Left Ramus height'])
+        df_ceph.loc[patient, 'Left Mandibular length'] = calculate_distance(df, patient, 'l-Gonion', 'B-point')
+        df_ceph.loc[patient, 'Right Mandibular length'] = calculate_distance(df, patient, 'r-Gonion', 'B-point')
+        df_ceph.loc[patient, 'Mandibular length diff'] = (df_ceph.loc[patient, 'Right Mandibular length'] - df_ceph.loc[patient, 'Left Mandibular length'])
 
         df_ceph.loc[patient, 'Anterior facial height'] = calculate_distance(df, patient, 'Nasion', 'Menton')                     # Maybe with projection
         df_ceph.loc[patient, 'Anterior upper facial height'] = calculate_distance(df, patient, 'Nasion', 'Sella')                # Maybe with projection
@@ -256,9 +262,11 @@ def cephalometric_analysis(df):
         df_ceph.loc[patient, 'Posterior facial height'] = calculate_distance(df, patient, 'Sella', 'r-Gonion')                   # Maybe with projection
 
         # Cephalometric angles
-        df_ceph.loc[patient, 'SNA'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'A-point')
-        df_ceph.loc[patient, 'SNB'] = calculate_angle_3p(df, patient, 'Sella', 'Nasion', 'B-point')
-        df_ceph.loc[patient, 'ANB'] = calculate_angle_3p(df, patient, 'A-point', 'Nasion', 'B-point')
+        df_ceph.loc[patient, 'Mandibular angle L'] = calculate_angle_3p(df, patient, 'Porion L','l-Gonion','Menton')
+        df_ceph.loc[patient, 'Mandibular angle R'] = calculate_angle_3p(df, patient, 'Porion R','r-Gonion','Menton')
+
+        # Distances to planes
+        df_ceph.loc[patient, ''] = point_to_plane_distance(df, patient, 'Nasion', 'MSP')
 
         # Cephalometric planes
         # df_ceph.loc[patient, 'FMA'] = angle_between_planes(df, patient, 'FHP', 'Mandibular plane') # Doesnt work yet
