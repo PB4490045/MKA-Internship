@@ -58,6 +58,8 @@ def calculate_midpoint(df, patient, landmark1, landmark2):
     midpoint = (p1 + p2) / 2
     return midpoint
 
+import numpy as np
+
 def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
     """
     Create a plane defined by three points in 3D space.
@@ -70,9 +72,9 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
     - landmark3: The third landmark (point) as a string.
 
     Returns:
-    - A list containing the coefficients of the plane equation in the form 
+    - A numpy array containing the normalized coefficients of the plane equation in the form 
       [A, B, C, D], representing the equation Ax + By + Cz + D = 0.
-      Returns [np.nan, np.nan, np.nan, np.nan] if any of the landmarks are missing or invalid.
+      Returns np.array([np.nan, np.nan, np.nan, np.nan]) if any of the landmarks are missing or invalid.
     """
     # Check each landmark individually
     try:
@@ -81,10 +83,10 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
             raise ValueError(f"Landmark '{landmark1}' does not have 3 coordinates for patient {patient}.")
     except KeyError:
         print(f"Landmark '{landmark1}' is missing for patient {patient} for 3-point plane calculation.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     except ValueError as e:
         print(e)
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
 
     try:
         p2 = np.array(df.loc[patient, landmark2])
@@ -92,10 +94,10 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
             raise ValueError(f"Landmark '{landmark2}' does not have 3 coordinates for patient {patient}.")
     except KeyError:
         print(f"Landmark '{landmark2}' is missing for patient {patient} for 3-point plane calculation.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     except ValueError as e:
         print(e)
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
 
     try:
         p3 = np.array(df.loc[patient, landmark3])
@@ -103,10 +105,10 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
             raise ValueError(f"Landmark '{landmark3}' does not have 3 coordinates for patient {patient}.")
     except KeyError:
         print(f"Landmark '{landmark3}' is missing for patient {patient} for 3-point plane calculation.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     except ValueError as e:
         print(e)
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     
     # Create vectors from p2 to p1 and p2 to p3
     v1 = p1 - p2
@@ -118,13 +120,19 @@ def create_plane_3p(df, patient, landmark1, landmark2, landmark3):
     # If the normal vector is all zeros, the points are collinear, and a unique plane cannot be defined
     if np.all(normal == 0):
         print(f"The landmarks for patient {patient} are collinear and cannot define a unique plane.")
-        return [np.nan, np.nan, np.nan, np.nan]    
+        return np.array([np.nan, np.nan, np.nan, np.nan])    
     
     # Compute the coefficients of the plane equation
     a, b, c = normal
     d = -np.dot(normal, p2)
     
+    # Normalize the coefficients if the normal vector norm is not zero
+    norm = np.linalg.norm([a, b, c])
+    if norm != 0:
+        a, b, c, d = a / norm, b / norm, c / norm, d / norm
+
     return np.array([a, b, c, d])
+
 
 def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     """
@@ -139,9 +147,9 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     - landmark4: The fourth landmark (point) as a string.
 
     Returns:
-    - A list containing the coefficients of the plane equation in the form 
+    - A numpy array containing the normalized coefficients of the plane equation in the form 
       [A, B, C, D], representing the equation Ax + By + Cz + D = 0.
-      Returns [np.nan, np.nan, np.nan, np.nan] if any landmarks are missing, 
+      Returns np.array([np.nan, np.nan, np.nan, np.nan]) if any landmarks are missing 
       or if the midpoint cannot be calculated.
     """
     # Calculate the midpoint
@@ -150,7 +158,7 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     # Check if midpoint contains NaN values
     if midpoint is None or np.isnan(midpoint).any():
         print(f"Midpoint between '{landmark1}' and '{landmark2}' could not be calculated for patient {patient}.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
 
     # Check each landmark individually
     try:
@@ -159,10 +167,10 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
             raise ValueError(f"Landmark '{landmark3}' does not have 3 coordinates for patient {patient}.")
     except KeyError:
         print(f"Landmark '{landmark3}' is missing for patient {patient} for 4-point plane calculation.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     except ValueError as e:
         print(e)
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
 
     try:
         p4 = np.array(df.loc[patient, landmark4])
@@ -170,10 +178,10 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
             raise ValueError(f"Landmark '{landmark4}' does not have 3 coordinates for patient {patient}.")
     except KeyError:
         print(f"Landmark '{landmark4}' is missing for patient {patient} for 4-point plane calculation.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     except ValueError as e:
         print(e)
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
 
     # Create vectors from the midpoint to p3 and p4
     v1 = p3 - midpoint
@@ -185,13 +193,17 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     # Check if the normal vector is all zeros (indicating collinear points)
     if np.all(normal == 0):
         print(f"The points for patient {patient} are collinear and cannot define a unique plane.")
-        return [np.nan, np.nan, np.nan, np.nan]
+        return np.array([np.nan, np.nan, np.nan, np.nan])
 
     # Compute the coefficients of the plane equation
     a, b, c = normal
     d = -np.dot(normal, midpoint)
 
-    # Return the coefficients as a list
+    # Normalize the coefficients if the normal vector norm is not zero
+    norm = np.linalg.norm([a, b, c])
+    if norm != 0:
+        a, b, c, d = a / norm, b / norm, c / norm, d / norm
+
     return np.array([a, b, c, d])
 
 def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='13', landmark4='43', 
@@ -241,29 +253,37 @@ def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='1
     # Return the coefficients as [A, B, C, D]
     return plane_coefficients
 
-def perpendicular_plane(df, patient, plane, landmark1, landmark2):
+def perpendicular_plane(df, patient, plane, midpoint, landmark1):
 
     A, B, C, D = np.array(df.loc[patient, plane])
     landmark1 = np.array(df.loc[patient, landmark1])
-    landmark2 = np.array(df.loc[patient, landmark2])
     
     # Define the normal vector of the plane
     normal_vector1 = [A, B, C]
 
     # Calculate the direction vector from point A to point B
-    direction_vector = landmark2 - landmark1
+    direction_vector = midpoint - landmark1
+
+    # Check if any part of the direction vector or normal vector is NaN
+    if np.isnan(direction_vector).any() or np.isnan(normal_vector1).any():
+        # If there is missing data, return an array of np.nan
+        return [np.nan, np.nan, np.nan, np.nan]  
     
     # Calculate the normal vector of the new plane (cross product)
     normal_vector2 = np.cross(normal_vector1, direction_vector)
     
     # Normalize the normal vector of the new plane
-    normal_vector2 = normal_vector2 / np.linalg.norm(normal_vector2)
+    if np.linalg.norm(normal_vector2) != 0:
+        normal_vector2 = normal_vector2 / np.linalg.norm(normal_vector2)
+    else:
+        # If normalization fails (zero vector), return an array of np.nan
+        return [np.nan, np.nan, np.nan, np.nan]
     
     # Calculate the d coefficient of the new plane (Ax + By + Cz + D = 0)
     d = -np.dot(normal_vector2, landmark1)
     
     # Return the coefficients of the new plane
-    return [normal_vector2[0], normal_vector2[1], normal_vector2[2], d]
+    return np.array([normal_vector2[0], normal_vector2[1], normal_vector2[2], d])
 
 def create_dataframe(input_path):
 
@@ -322,6 +342,10 @@ def create_dataframe_from_folders(input_path, folder_names):
                 # Extract point name from the filename
                 point_name = filename.split('.')[0]
 
+                # Exclude landmarks that end with '_1' or '_2'
+                if point_name.endswith('_1') or point_name.endswith('_2'):
+                    continue  # Skip this landmark if it's a duplicate                
+
                 # Load JSON file
                 file_path = os.path.join(folder_path, filename)
                 with open(file_path) as f:
@@ -341,13 +365,52 @@ def create_dataframe_from_folders(input_path, folder_names):
     df = pd.DataFrame(data).set_index('Patient')
     return df
 
+# =============================================================================
+# function only for testing needed
+def test_dataframe(input_path, patient_folder):
+    # Initialize a list to collect each patient's data
+    data = []
+
+    folder_path = os.path.join(input_path, patient_folder)
+    row_data = {'Patient': patient_folder}  # Dictionary to store data for each patient
+
+    # Loop through all files in the folder
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.json'):
+            # Extract point name from the filename
+            point_name = filename.split('.')[0]
+
+            # Exclude landmarks that end with '_1' or '_2'
+            if point_name.endswith('_1') or point_name.endswith('_2'):
+                continue  # Skip this landmark if it's a duplicate                
+
+            # Load JSON file
+            file_path = os.path.join(folder_path, filename)
+            with open(file_path) as f:
+                data_json = json.load(f)
+
+            # Extract position coordinates
+            try:
+                position = data_json["markups"][0]["controlPoints"][0]["position"]
+                row_data[point_name] = position
+            except (KeyError, IndexError) as e:
+                print(f"Error in file {filename}: {e}")
+
+        # Append row data to the list
+        data.append(row_data)
+
+    # Convert list of dictionaries to a DataFrame and set 'Patient' as index
+    df = pd.DataFrame(data).set_index('Patient')
+    return df
+
+
 def create_planes(df):
 
-    # Initialize the columns for the plane coefficients
+    # Initialize the columns for the plane coefficients as empty lists
     df['Mandibular plane'] = None
     df['Occlusal plane'] = None
     df['FHP'] = None
-    df['Facial midplane'] = None
+    df['MSP'] = None
 
     for patient in df.index:
         # Calculate the plane coefficients using the specified landmarks
