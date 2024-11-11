@@ -194,57 +194,6 @@ def create_plane_4p(df, patient, landmark1, landmark2, landmark3, landmark4):
     # Return the coefficients as a list
     return np.array([a, b, c, d])
 
-
-# def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='13', landmark4='43', 
-#                    landmark5='23', landmark6='33', landmark7='16', landmark8='46', landmark9='26', landmark10='36'):
-#     """
-#     Calculate the occlusal plane defined by five pairs of landmarks, each pair averaged into a midpoint.
-
-#     Parameters:
-#     - df: DataFrame containing patient landmark coordinates.
-#     - patient: The identifier for the patient in the DataFrame.
-#     - landmark1, landmark2, ..., landmark10: Strings representing landmarks to calculate midpoints.
-
-#     Returns:
-#     - A list containing the coefficients of the plane equation [A, B, C, D].
-#       Returns [np.nan, np.nan, np.nan, np.nan] if any landmark is missing or if points are collinear.
-#     """
-#     # Retrieve the coordinates of the landmarks from the DataFrame
-#     try:
-#         points = np.array([
-#             calculate_midpoint(df, patient, landmark1, landmark2),
-#             calculate_midpoint(df, patient, landmark3, landmark4),
-#             calculate_midpoint(df, patient, landmark5, landmark6),
-#             calculate_midpoint(df, patient, landmark7, landmark8),
-#             calculate_midpoint(df, patient, landmark9, landmark10)
-#         ])
-#     except KeyError as e:
-#         print(f"Landmark '{e.args[0]}' is missing for patient {patient}.")
-#         return [np.nan, np.nan, np.nan, np.nan]
-    
-#     # Check if any midpoint contains NaN values
-#     if np.isnan(points).any():
-#         print(f"One or more landmarks contain NaN values for patient {patient}.")
-#         return [np.nan, np.nan, np.nan, np.nan]
-    
-#     # Create the design matrix for the least squares solution
-#     # The design matrix will be [x, y, z, 1] for each point
-#     A = np.c_[points[:, 0], points[:, 1], points[:, 2], np.ones(points.shape[0])]
-    
-#     # Check if the points are collinear by evaluating rank
-#     if np.linalg.matrix_rank(A) < 3:
-#         print(f"The points for patient {patient} are collinear and cannot define a unique plane.")
-#         return [np.nan, np.nan, np.nan, np.nan]
-    
-#     # Perform the least squares solution
-#     _, _, Vt = linalg.svd(A)
-    
-#     # The last row of Vt is the solution for [A, B, C, D]
-#     plane_coefficients = Vt[-1, :]
-    
-#     # Return the coefficients as [A, B, C, D]
-#     return plane_coefficients
-
 def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='13', landmark4='43', 
                    landmark5='23', landmark6='33', landmark7='16', landmark8='46', landmark9='26', landmark10='36'):
     """
@@ -291,6 +240,30 @@ def occlusal_plane(df, patient, landmark1='IsU1', landmark2='IsL1', landmark3='1
     
     # Return the coefficients as [A, B, C, D]
     return plane_coefficients
+
+def perpendicular_plane(df, patient, plane, landmark1, landmark2):
+
+    A, B, C, D = np.array(df.loc[patient, plane])
+    landmark1 = np.array(df.loc[patient, landmark1])
+    landmark2 = np.array(df.loc[patient, landmark2])
+    
+    # Define the normal vector of the plane
+    normal_vector1 = [A, B, C]
+
+    # Calculate the direction vector from point A to point B
+    direction_vector = landmark2 - landmark1
+    
+    # Calculate the normal vector of the new plane (cross product)
+    normal_vector2 = np.cross(normal_vector1, direction_vector)
+    
+    # Normalize the normal vector of the new plane
+    normal_vector2 = normal_vector2 / np.linalg.norm(normal_vector2)
+    
+    # Calculate the d coefficient of the new plane (Ax + By + Cz + D = 0)
+    d = -np.dot(normal_vector2, landmark1)
+    
+    # Return the coefficients of the new plane
+    return [normal_vector2[0], normal_vector2[1], normal_vector2[2], d]
 
 def create_dataframe(input_path):
 
@@ -381,7 +354,7 @@ def create_planes(df):
         df.at[patient, 'Mandibular plane'] = create_plane_3p(df, patient, 'Menton', 'r-Gonion', 'l-Gonion')
         df.at[patient, 'Occlusal plane'] = occlusal_plane(df, patient)
         df.at[patient, 'FHP'] = create_plane_4p(df, patient, 'Porion L', 'Porion R', 'Infraorbitale L', 'Infraorbitale R')
-        df.at[patient, 'Facial midplane'] = create_plane_3p(df, patient, 'Sella', 'Nasion', 'Menton')
+        df.at[patient, 'MSP'] = perpendicular_plane(df, patient, 'FHP', calculate_midpoint(df, patient, 'Infraorbitale L', 'Infraorbitale R'), 'Sella')
 
     return df
 
