@@ -33,22 +33,24 @@ print(df_groundtruth['MSP'])
 print(df_predicted['Mandibular plane'])
 
 # # # # # Save dataframes
-# pp.save_df(df_groundtruth, output_path, 'df_groundtruth')
-# pp.save_df(df_predicted, output_path, 'df_predicted')
+pp.save_df(df_groundtruth, output_path, 'df_groundtruth')
+pp.save_df(df_predicted, output_path, 'df_predicted')
 
 # # Load dataframes for testing
 # df_groundtruth = pp.loadcsv(output_path, 'df_groundtruth.csv')
 # df_predicted = pp.loadcsv(output_path, 'df_predicted.csv')
 
 # # # Perform Cephalometric Analysis
-# ceph_gt = ca.cephalometric_analysis(df_groundtruth)
-# ceph_p = ca.cephalometric_analysis(df_predicted)
-# print(ceph_gt)
+ceph_gt = ca.cephalometric_analysis(df_groundtruth)
+ceph_p = ca.cephalometric_analysis(df_predicted)
 
-# df_stats = sa.paired_ttest(ceph_gt, ceph_p)
-# print(df_stats)
+pp.save_df(ceph_gt, output_path, 'ceph_gt')
+pp.save_df(ceph_p, output_path, 'ceph_p')
 
-# print(df_groundtruth)
+df_stats = sa.combined_analysis(ceph_gt, ceph_p)
+
+pp.save_df(df_stats, output_path, 'df_stats')
+
 # # # List of landmarks to exclude
 planes = ['Mandibular plane', 'Occlusal plane', 'FHP', 'MSP']
 
@@ -56,8 +58,7 @@ planes = ['Mandibular plane', 'Occlusal plane', 'FHP', 'MSP']
 landmarks_to_plot = [landmark for landmark in df_groundtruth.columns if landmark not in planes]
 
 # Generate points with the filtered landmarks
-points_gt = vis.landmark_array(df_groundtruth, 'ma_006', landmarks_to_plot)
+points_gt = vis.landmark_array(df_groundtruth, 'ma_009', landmarks_to_plot)
 
 # Plot the 3D points
-# vis.plot_3d_points(points_gt)
-vis.plot_3d_points_and_planes(points_gt, df_groundtruth, 'ma_006', planes)
+vis.plot_3d_points_and_planes(points_gt, df_groundtruth, 'ma_009', planes)
