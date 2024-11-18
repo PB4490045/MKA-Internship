@@ -1,6 +1,6 @@
 # Cephalometric Analysis Project
 
-This project automates cephalometric analysis by processing anatomical landmarks, calculating distances and angles, performing statistical comparisons, and visualizing results in 3D. It includes modules for data preprocessing, cephalometric measurements, statistical analysis, and visualization.
+This project automates cephalometric analysis by processing anatomical landmarks, calculating distances and angles, performing statistical comparisons, and visualizing results in 3D. It includes modules for data preprocessing, cephalometric measurements, statistical analysis, and visualization. The current fucntions are easily adaptable to add more measurements. The code is free to download for everyone to use.
 
 ## Table of Contents
 - [Installation](#installation)
