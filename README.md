@@ -34,12 +34,19 @@ This project requires Python 3.6 or higher and the following packages:
 ## Project Structure
 
 cephalometric-analysis/
-│
+
+│ 
+
 ├── main.py                    # Main script to run the analysis pipeline
+
 ├── preprocessing.py           # Functions for data preprocessing
+
 ├── ceph_analysis.py           # Functions for cephalometric measurements
+
 ├── stat_analysis.py           # Functions for statistical analysis
+
 ├── visualisation.py           # Functions for 3D visualization
+
 └── README.md                  # Project documentation
 
 
